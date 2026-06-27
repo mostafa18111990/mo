@@ -1,5 +1,6 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.user import User, UserRole
@@ -7,6 +8,7 @@ from ..models.tenant import Tenant, TenantStatus
 from ..schemas.user import UserOut, UserUpdate
 from ..schemas.tenant import TenantOut
 from ..core.security import require_role
+from .. import tasks
 
 router = APIRouter()
 
@@ -35,6 +37,24 @@ def all_tenants(db: Annotated[Session, Depends(get_db)]):
 @router.get("/users", response_model=list[UserOut], dependencies=[_admin_dep])
 def all_users(db: Annotated[Session, Depends(get_db)]):
     return db.query(User).all()
+
+
+class PackagesBody(BaseModel):
+    packages: list[str] = ["qifparse"]
+    tenant_id: int | None = None
+
+
+@router.post("/fix-packages", dependencies=[Depends(require_role(UserRole.super_admin))])
+def fix_packages(body: PackagesBody, db: Annotated[Session, Depends(get_db)]):
+    if body.tenant_id:
+        tenant = db.get(Tenant, body.tenant_id)
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        tasks.install_pip_packages.delay(tenant.id, body.packages)
+        return {"status": "queued", "tenant": tenant.slug, "packages": body.packages}
+    else:
+        tasks.fix_all_tenants_packages.delay(body.packages)
+        return {"status": "queued_all", "packages": body.packages}
 
 
 @router.patch("/users/{user_id}", response_model=UserOut,

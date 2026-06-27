@@ -76,6 +76,16 @@ class DockerManager:
         except (NotFound, APIError):
             return ""
 
+    def exec_in_container(self, container_id: str, cmd: list[str]) -> tuple[int, str]:
+        try:
+            c = self._client.containers.get(container_id)
+            result = c.exec_run(cmd, stdout=True, stderr=True)
+            output = result.output.decode("utf-8", errors="replace") if result.output else ""
+            logger.info("exec %s exit=%d", cmd, result.exit_code)
+            return result.exit_code, output
+        except (NotFound, APIError) as exc:
+            return 1, str(exc)
+
     def container_stats(self, container_id: str) -> dict | None:
         try:
             c = self._client.containers.get(container_id)

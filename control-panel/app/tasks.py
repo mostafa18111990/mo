@@ -4,6 +4,7 @@ from .database import session_scope
 from .models.tenant import Tenant, TenantStatus
 from .services.provisioning import ProvisioningService
 from .services.backup_service import BackupService
+from .services.docker_manager import DockerManager
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
@@ -116,3 +117,35 @@ def prune_old_backups():
     with session_scope() as db:
         svc = BackupService(db)
         svc.prune_old_backups(keep_days=30)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=10)
+def install_pip_packages(self, tenant_id: int, packages: list[str]):
+    try:
+        with session_scope() as db:
+            tenant = db.get(Tenant, tenant_id)
+            if not tenant or not tenant.container_id:
+                return {"error": "Tenant or container not found"}
+            dm = DockerManager()
+            exit_code, output = dm.exec_in_container(
+                tenant.container_id,
+                ["pip", "install"] + packages
+            )
+            if exit_code != 0:
+                raise RuntimeError(f"pip install failed: {output}")
+            dm.restart(tenant.container_id)
+            return {"status": "ok", "output": output}
+    except Exception as exc:
+        raise self.retry(exc=exc)
+
+
+@celery_app.task
+def fix_all_tenants_packages(packages: list[str] | None = None):
+    pkgs = packages or ["qifparse"]
+    with session_scope() as db:
+        tenants = db.query(Tenant).filter(
+            Tenant.status == TenantStatus.active
+        ).all()
+        for tenant in tenants:
+            if tenant.container_id:
+                install_pip_packages.delay(tenant.id, pkgs)
