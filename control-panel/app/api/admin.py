@@ -74,3 +74,19 @@ def update_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.delete("/users/{user_id}", status_code=204,
+               dependencies=[Depends(require_role(UserRole.super_admin))])
+def delete_user(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    remaining_tenants = db.query(Tenant).filter(Tenant.owner_id == user_id).count()
+    if remaining_tenants > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"User still has {remaining_tenants} tenant(s). Delete them first."
+        )
+    user.is_active = False
+    db.commit()

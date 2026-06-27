@@ -67,9 +67,54 @@ def delete_tenant(self, tenant_id: int):
     try:
         with session_scope() as db:
             tenant = db.get(Tenant, tenant_id)
+            if not tenant:
+                return
+
+            owner_id = tenant.owner_id
+
+            # 1. إلغاء اشتراك Stripe إن وجد
+            from .models.subscription import Subscription, SubscriptionStatus
+            import stripe
+            from .config import get_settings
+            _settings = get_settings()
+            stripe.api_key = _settings.stripe_secret_key
+            sub = db.query(Subscription).filter(
+                Subscription.tenant_id == tenant_id
+            ).first()
+            if sub and sub.stripe_subscription_id:
+                try:
+                    stripe.Subscription.cancel(sub.stripe_subscription_id)
+                except Exception:
+                    pass
+                sub.status = SubscriptionStatus.canceled
+                db.commit()
+
+            # 2. حذف السجلات المرتبطة (backups, subscription)
+            from .models.backup import Backup
+            db.query(Backup).filter(Backup.tenant_id == tenant_id).delete()
+            if sub:
+                db.delete(sub)
+            db.commit()
+
+            # 3. تدمير الكونتينر والقاعدة والـ Traefik config
             svc = ProvisioningService(db)
             svc.terminate(tenant)
+
+            # 4. حذف سجل الـ Tenant
             db.delete(tenant)
+            db.commit()
+
+            # 5. إلغاء تفعيل حساب العميل إذا لم يعد لديه أي tenant آخر
+            from .models.user import User
+            remaining = db.query(Tenant).filter(
+                Tenant.owner_id == owner_id
+            ).count()
+            if remaining == 0:
+                user = db.get(User, owner_id)
+                if user:
+                    user.is_active = False
+                    db.commit()
+
     except Exception as exc:
         raise self.retry(exc=exc)
 

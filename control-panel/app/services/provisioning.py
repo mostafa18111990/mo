@@ -60,12 +60,20 @@ class ProvisioningService:
             raise
 
     def terminate(self, tenant: Tenant):
+        # أوقف وأزل الكونتينر
         if tenant.container_id:
+            self.dm.stop(tenant.container_id)
             self.dm.remove(tenant.container_id)
+        # احذف إعداد Traefik
         remove_tenant_config(tenant.slug)
+        # احذف قاعدة البيانات والمستخدم
         self.pg.drop_tenant_db(tenant.db_name, tenant.db_user)
-        tenant.status = TenantStatus.terminated
-        self.db.commit()
+        # احذف الـ volume إن وجد
+        try:
+            self.dm._client.volumes.get(f"odoo-data-{tenant.slug}").remove(force=True)
+        except Exception:
+            pass
+        logger.info("Terminated tenant %s", tenant.slug)
 
     def suspend(self, tenant: Tenant):
         if tenant.container_id:
