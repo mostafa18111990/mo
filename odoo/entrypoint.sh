@@ -16,9 +16,17 @@ DB_EXISTS=$(psql "postgresql://${TENANT_DB_USER}:${TENANT_DB_PASSWORD}@${TENANT_
 
 if [ "${DB_EXISTS}" != "1" ]; then
   echo "First boot: initializing database ${TENANT_DB_NAME}..."
+  # Install base modules then accounting kit
+  odoo --config=/etc/odoo/odoo.conf \
+    --database="${TENANT_DB_NAME}" \
+    --init=base,web,mail,account,account_accountant \
+    --without-demo=all \
+    --stop-after-init
+
+  echo "Installing accounting kit..."
   exec odoo --config=/etc/odoo/odoo.conf \
     --database="${TENANT_DB_NAME}" \
-    --init=base,web,mail \
+    --init=base_accounting_kit \
     --without-demo=all \
     --stop-after-init
 fi

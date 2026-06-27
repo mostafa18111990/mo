@@ -34,6 +34,7 @@ class ProvisioningService:
                     "TENANT_DB_PASSWORD": tenant.db_password,
                     "TENANT_ADMIN_PASSWORD": tenant.odoo_admin_password,
                     "TENANT_COMPANY_NAME": tenant.display_name,
+                    "INSTALL_ACCOUNTING_KIT": "1",
                 },
                 labels={
                     "traefik.enable": "false",
