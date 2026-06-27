@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        working-directory: control-panel
+        run: pip install -r requirements.txt ruff pytest
+
+      - name: Lint (ruff)
+        working-directory: control-panel
+        run: ruff check app/
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  build-images:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push control-panel
+        uses: docker/build-push-action@v6
+        with:
+          context: ./control-panel
+          push: true
+          tags: ghcr.io/${{ github.repository }}/control-panel:latest
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: ghcr.io/${{ github.repository }}/frontend:latest
+
+      - name: Build & push odoo
+        uses: docker/build-push-action@v6
+        with:
+          context: ./odoo
+          push: true
+          tags: ghcr.io/${{ github.repository }}/odoo-custom:17

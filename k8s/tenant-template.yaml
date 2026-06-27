@@ -1,0 +1,100 @@
+# Jinja2 template — rendered per tenant by the control panel
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo-{{ slug }}
+  namespace: odoo-saas
+  labels:
+    app: odoo-tenant
+    saas.tenant_id: "{{ tenant_id }}"
+    saas.slug: "{{ slug }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: odoo-tenant
+      saas.slug: "{{ slug }}"
+  template:
+    metadata:
+      labels:
+        app: odoo-tenant
+        saas.slug: "{{ slug }}"
+    spec:
+      containers:
+        - name: odoo
+          image: {{ odoo_image }}
+          ports:
+            - containerPort: 8069
+          env:
+            - name: TENANT_DB_HOST
+              value: postgres
+            - name: TENANT_DB_NAME
+              value: "{{ db_name }}"
+            - name: TENANT_DB_USER
+              value: "{{ db_user }}"
+            - name: TENANT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tenant-{{ slug }}-secret
+                  key: db-password
+            - name: TENANT_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tenant-{{ slug }}-secret
+                  key: admin-password
+            - name: TENANT_COMPANY_NAME
+              value: "{{ display_name }}"
+          resources:
+            requests:
+              memory: "{{ memory_limit }}"
+              cpu: "{{ cpu_limit }}"
+            limits:
+              memory: "{{ memory_limit }}"
+              cpu: "{{ cpu_limit }}"
+          volumeMounts:
+            - name: odoo-data
+              mountPath: /var/lib/odoo
+      volumes:
+        - name: odoo-data
+          persistentVolumeClaim:
+            claimName: odoo-data-{{ slug }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-data-{{ slug }}
+  namespace: odoo-saas
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ storage_gb }}Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: odoo-{{ slug }}
+  namespace: odoo-saas
+spec:
+  selector:
+    app: odoo-tenant
+    saas.slug: "{{ slug }}"
+  ports:
+    - port: 8069
+      targetPort: 8069
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: tenant-{{ slug }}
+  namespace: odoo-saas
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`{{ subdomain }}.myodoo.com`)
+      kind: Rule
+      services:
+        - name: odoo-{{ slug }}
+          port: 8069
+  tls:
+    certResolver: le
