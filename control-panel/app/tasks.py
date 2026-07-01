@@ -14,6 +14,21 @@ def provision_tenant(self, tenant_id: int):
             tenant = db.get(Tenant, tenant_id)
             svc = ProvisioningService(db)
             svc.provision(tenant)
+            # إرسال بريد الترحيب بعد اكتمال الإنشاء
+            from .services.email_service import send_tenant_ready
+            from .models.user import User
+            from .config import get_settings
+            _s = get_settings()
+            owner = db.get(User, tenant.owner_id)
+            if owner:
+                send_tenant_ready(
+                    user_email=owner.email,
+                    company_name=tenant.display_name,
+                    subdomain=tenant.subdomain,
+                    admin_email=tenant.company_email or owner.email,
+                    admin_password=tenant.odoo_admin_password,
+                    domain=_s.domain,
+                )
     except Exception as exc:
         raise self.retry(exc=exc)
 
@@ -25,6 +40,13 @@ def suspend_tenant(self, tenant_id: int):
             tenant = db.get(Tenant, tenant_id)
             svc = ProvisioningService(db)
             svc.suspend(tenant)
+            from .services.email_service import send_tenant_suspended
+            from .models.user import User
+            from .config import get_settings
+            _s = get_settings()
+            owner = db.get(User, tenant.owner_id)
+            if owner:
+                send_tenant_suspended(owner.email, tenant.display_name, _s.domain)
     except Exception as exc:
         raise self.retry(exc=exc)
 

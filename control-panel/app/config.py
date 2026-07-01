@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://redis:6379/1"
     celery_result_backend: str = "redis://redis:6379/2"
 
+    # SMTP for email notifications
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@myodoo.com"
+    smtp_tls: bool = True
+
     @property
     def cp_database_url(self) -> str:
         return (

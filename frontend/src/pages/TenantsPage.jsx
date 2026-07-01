@@ -13,6 +13,25 @@ const STATUS_COLORS = {
   upgrading: 'bg-purple-100 text-purple-800',
 }
 
+const STATUS_AR = {
+  active: 'نشط',
+  suspended: 'موقوف',
+  provisioning: 'جارٍ الإنشاء...',
+  error: 'خطأ',
+  terminated: 'محذوف',
+  upgrading: 'جارٍ التحديث',
+}
+
+const SECTOR_AR = {
+  retail: '🛍️ التجزئة',
+  services: '🤝 الخدمات',
+  manufacturing: '🏭 التصنيع',
+  restaurant: '🍽️ المطاعم',
+  realestate: '🏢 العقارات',
+  healthcare: '🏥 الصحة',
+  education: '🎓 التعليم',
+}
+
 export default function TenantsPage() {
   const { logout } = useAuthStore()
   const { data: tenants = [], isLoading } = useQuery({
@@ -56,10 +75,13 @@ export default function TenantsPage() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-semibold text-gray-900">{tenant.display_name}</h3>
-                    <p className="text-xs text-gray-500">{tenant.subdomain}.myodoo.com</p>
+                    <p className="text-xs text-gray-500 mt-0.5" dir="ltr">{tenant.subdomain}.myodoo.com</p>
+                    {tenant.company_email && (
+                      <p className="text-xs text-gray-400 mt-0.5" dir="ltr">{tenant.company_email}</p>
+                    )}
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[tenant.status] || 'bg-gray-100'}`}>
-                    {tenant.status}
+                    {STATUS_AR[tenant.status] || tenant.status}
                   </span>
                 </div>
                 <div className="mt-3">
@@ -71,7 +93,14 @@ export default function TenantsPage() {
                       style={{ width: `${Math.min(tenant.cpu_usage || 0, 100)}%` }} />
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-3">Odoo {tenant.odoo_version}</p>
+                <div className="flex justify-between items-center mt-3">
+                  <p className="text-xs text-gray-400">Odoo {tenant.odoo_version}</p>
+                  {tenant.sector_code && tenant.sector_code !== 'custom' && (
+                    <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                      {SECTOR_AR[tenant.sector_code] || tenant.sector_code}
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
