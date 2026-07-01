@@ -4,6 +4,17 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import client from '../api/client'
 
+const SECTOR_AR = {
+  retail: '🛍️ التجزئة',
+  services: '🤝 الخدمات',
+  manufacturing: '🏭 التصنيع',
+  restaurant: '🍽️ المطاعم',
+  realestate: '🏢 العقارات',
+  healthcare: '🏥 الصحة',
+  education: '🎓 التعليم',
+  custom: '⚙️ مخصص',
+}
+
 export default function AdminPage() {
   const user = useAuthStore(s => s.user)
 
@@ -56,6 +67,7 @@ export default function AdminPage() {
               <thead>
                 <tr className="text-left text-gray-500 border-b">
                   <th className="pb-2">Name</th><th className="pb-2">Subdomain</th>
+                  <th className="pb-2">Sector</th>
                   <th className="pb-2">Status</th><th className="pb-2">Version</th>
                   <th className="pb-2">Created</th>
                 </tr>
@@ -64,7 +76,12 @@ export default function AdminPage() {
                 {tenants.map(t => (
                   <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="py-2 font-medium">{t.display_name}</td>
-                    <td className="py-2 text-gray-500">{t.subdomain}.myodoo.com</td>
+                    <td className="py-2 text-gray-500" dir="ltr">{t.subdomain}.myodoo.com</td>
+                    <td className="py-2">
+                      <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+                        {SECTOR_AR[t.sector_code] || t.sector_code}
+                      </span>
+                    </td>
                     <td className="py-2"><span className={`text-xs px-2 py-1 rounded-full ${t.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>{t.status}</span></td>
                     <td className="py-2">{t.odoo_version}</td>
                     <td className="py-2 text-gray-500">{new Date(t.created_at).toLocaleDateString()}</td>

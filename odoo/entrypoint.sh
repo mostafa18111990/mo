@@ -17,8 +17,8 @@ DB_EXISTS=$(psql "postgresql://${TENANT_DB_USER}:${TENANT_DB_PASSWORD}@${TENANT_
 if [ "${DB_EXISTS}" != "1" ]; then
   echo "First boot: initializing database ${TENANT_DB_NAME}..."
 
-  # الموديولات الأساسية دائماً
-  BASE_MODULES="base,web,mail"
+  # الموديولات الأساسية دائماً + وحدة العلامة التجارية لضبط بيانات الشركة
+  BASE_MODULES="base,web,mail,saas_tenant_branding"
 
   # موديولات القطاع من env var (بدون base_accounting_kit لأنه يثبت آخراً)
   SECTOR_MODULES="${TENANT_MODULES:-account}"
