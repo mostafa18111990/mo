@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: control-panel-api
+  namespace: odoo-saas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: control-panel
+      component: api
+  template:
+    metadata:
+      labels:
+        app: control-panel
+        component: api
+    spec:
+      serviceAccountName: control-panel
+      containers:
+        - name: api
+          image: ghcr.io/OWNER/odoo-saas/control-panel:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: saas-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: odoo-saas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: control-panel
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: control-panel
+        component: worker
+    spec:
+      serviceAccountName: control-panel
+      containers:
+        - name: worker
+          image: ghcr.io/OWNER/odoo-saas/control-panel:latest
+          command: ["celery", "-A", "app.worker", "worker", "--loglevel=info", "--concurrency=4"]
+          envFrom:
+            - secretRef:
+                name: saas-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  namespace: odoo-saas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: control-panel
+      component: beat
+  template:
+    metadata:
+      labels:
+        app: control-panel
+        component: beat
+    spec:
+      containers:
+        - name: beat
+          image: ghcr.io/OWNER/odoo-saas/control-panel:latest
+          command: ["celery", "-A", "app.worker", "beat", "--loglevel=info"]
+          envFrom:
+            - secretRef:
+                name: saas-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: control-panel
+  namespace: odoo-saas
+spec:
+  selector:
+    app: control-panel
+    component: api
+  ports:
+    - port: 8000
+      targetPort: 8000

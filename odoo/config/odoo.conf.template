@@ -1,0 +1,21 @@
+[options]
+db_host = ${TENANT_DB_HOST}
+db_port = ${TENANT_DB_PORT:-5432}
+db_user = ${TENANT_DB_USER}
+db_password = ${TENANT_DB_PASSWORD}
+db_name = ${TENANT_DB_NAME}
+admin_passwd = ${TENANT_ADMIN_PASSWORD}
+addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons
+data_dir = /var/lib/odoo
+http_port = 8069
+proxy_mode = True
+workers = 2
+max_cron_threads = 1
+limit_memory_hard = 2684354560
+limit_memory_soft = 2147483648
+limit_request = 8192
+limit_time_cpu = 600
+limit_time_real = 1200
+without_demo = all
+logfile = /dev/stdout
+log_level = info

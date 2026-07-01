@@ -1,0 +1,42 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: admin-panel
+  namespace: odoo-saas
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`admin.myodoo.com`)
+      kind: Rule
+      services:
+        - name: frontend
+          port: 80
+    - match: Host(`admin.myodoo.com`) && PathPrefix(`/api`)
+      kind: Rule
+      services:
+        - name: control-panel
+          port: 8000
+  tls:
+    certResolver: le
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: tenant-wildcard
+  namespace: odoo-saas
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostRegexp(`{subdomain:[a-z0-9-]+}.myodoo.com`)
+      kind: Rule
+      services:
+        - name: tenant-router
+          port: 8080
+  tls:
+    certResolver: le
+    domains:
+      - main: "myodoo.com"
+        sans:
+          - "*.myodoo.com"
