@@ -2,10 +2,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models.user import User, UserRole
+from ..models.user import UserRole
 from ..models.plan import Plan
 from ..schemas.plan import PlanOut, PlanCreate
-from ..core.security import get_current_user, require_role
+from ..core.security import require_role
 
 router = APIRouter()
 

@@ -1,9 +1,9 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.user import User, UserRole
-from ..models.tenant import Tenant, TenantStatus
+from ..models.tenant import Tenant
 from ..schemas.tenant import TenantCreate, TenantOut, TenantAction
 from ..core.security import get_current_user
 from ..core.audit import audit
