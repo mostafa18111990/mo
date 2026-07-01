@@ -4,7 +4,7 @@ from prometheus_client import make_asgi_app
 
 from .config import get_settings
 from .core.logging import setup_logging
-from .api import auth, tenants, plans, billing, admin, monitoring, webhooks
+from .api import auth, tenants, plans, billing, admin, monitoring, webhooks, sectors
 
 setup_logging()
 settings = get_settings()
@@ -36,6 +36,7 @@ app.include_router(billing.router, prefix="/api/billing", tags=["billing"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(monitoring.router, prefix="/api/monitoring", tags=["monitoring"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+app.include_router(sectors.router, prefix="/api/sectors", tags=["sectors"])
 
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)

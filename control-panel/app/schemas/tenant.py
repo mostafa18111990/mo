@@ -8,6 +8,9 @@ class TenantCreate(BaseModel):
     display_name: str
     plan_code: str
     billing_period: str = "monthly"
+    sector_code: str = "custom"
+    company_email: str | None = None
+    company_phone: str | None = None
 
     @field_validator("slug")
     @classmethod
@@ -25,6 +28,9 @@ class TenantOut(BaseModel):
     subdomain: str
     display_name: str
     odoo_version: str
+    sector_code: str
+    company_email: str | None
+    company_phone: str | None
     status: TenantStatus
     cpu_usage: float
     memory_usage: float

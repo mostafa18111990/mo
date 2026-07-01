@@ -5,6 +5,7 @@ from ..models.tenant import Tenant, TenantStatus
 from .docker_manager import DockerManager, ContainerSpec
 from .postgres_admin import PostgresAdmin
 from .traefik_manager import write_tenant_config, remove_tenant_config
+from .sectors import get_sector_modules
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -34,7 +35,9 @@ class ProvisioningService:
                     "TENANT_DB_PASSWORD": tenant.db_password,
                     "TENANT_ADMIN_PASSWORD": tenant.odoo_admin_password,
                     "TENANT_COMPANY_NAME": tenant.display_name,
-                    "INSTALL_ACCOUNTING_KIT": "1",
+                    "TENANT_COMPANY_EMAIL": tenant.company_email or "",
+                    "TENANT_COMPANY_PHONE": tenant.company_phone or "",
+                    "TENANT_MODULES": ",".join(get_sector_modules(tenant.sector_code)),
                 },
                 labels={
                     "traefik.enable": "false",

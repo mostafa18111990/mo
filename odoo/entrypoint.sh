@@ -16,19 +16,33 @@ DB_EXISTS=$(psql "postgresql://${TENANT_DB_USER}:${TENANT_DB_PASSWORD}@${TENANT_
 
 if [ "${DB_EXISTS}" != "1" ]; then
   echo "First boot: initializing database ${TENANT_DB_NAME}..."
-  # Install base modules then accounting kit
+
+  # الموديولات الأساسية دائماً
+  BASE_MODULES="base,web,mail"
+
+  # موديولات القطاع من env var (بدون base_accounting_kit لأنه يثبت آخراً)
+  SECTOR_MODULES="${TENANT_MODULES:-account}"
+  # احذف base_accounting_kit من القائمة الأولى
+  FIRST_PHASE=$(echo "${SECTOR_MODULES}" | tr ',' '\n' | grep -v 'base_accounting_kit' | tr '\n' ',' | sed 's/,$//')
+
+  # المرحلة الأولى: الموديولات الأساسية + موديولات القطاع
+  ALL_FIRST="${BASE_MODULES},${FIRST_PHASE}"
+  echo "Installing modules (phase 1): ${ALL_FIRST}"
   odoo --config=/etc/odoo/odoo.conf \
     --database="${TENANT_DB_NAME}" \
-    --init=base,web,mail,account,account_accountant \
+    --init="${ALL_FIRST}" \
     --without-demo=all \
     --stop-after-init
 
-  echo "Installing accounting kit..."
-  exec odoo --config=/etc/odoo/odoo.conf \
+  # المرحلة الثانية: base_accounting_kit (يحتاج account مثبتاً أولاً)
+  echo "Installing accounting kit (phase 2)..."
+  odoo --config=/etc/odoo/odoo.conf \
     --database="${TENANT_DB_NAME}" \
     --init=base_accounting_kit \
     --without-demo=all \
     --stop-after-init
+
+  echo "All modules installed successfully."
 fi
 
 exec odoo --config=/etc/odoo/odoo.conf "$@"

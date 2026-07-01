@@ -49,6 +49,9 @@ def create_tenant(
         db_user=db_identifier(slug, prefix="u_"),
         db_password=random_password(),
         odoo_admin_password=random_password(),
+        sector_code=body.sector_code,
+        company_email=body.company_email or current_user.email,
+        company_phone=body.company_phone,
     )
     db.add(tenant)
     db.commit()
