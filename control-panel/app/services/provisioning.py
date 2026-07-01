@@ -57,7 +57,7 @@ class ProvisioningService:
             tenant.status = TenantStatus.active
             self.db.commit()
             logger.info("Provisioned tenant %s", tenant.slug)
-        except Exception as exc:
+        except Exception:
             tenant.status = TenantStatus.error
             self.db.commit()
             raise

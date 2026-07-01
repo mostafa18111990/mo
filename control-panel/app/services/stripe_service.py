@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..models.user import User
 from ..models.plan import Plan
-from ..models.tenant import Tenant, TenantStatus
 from ..models.subscription import Subscription, SubscriptionStatus, BillingPeriod
 from .. import tasks
 
